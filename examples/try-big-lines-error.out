@@ -1,0 +1,4 @@
+/dev/stdin:1234570.1: Extra content at the end of the document
+this text will trigger an error
+^
+/dev/stdin - invalid

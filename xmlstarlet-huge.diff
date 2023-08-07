@@ -1,0 +1,153 @@
+diff -ur xmlstarlet-1.6.1/src/trans.c xmlstarlet-patch/src/trans.c
+--- xmlstarlet-1.6.1/src/trans.c	2012-08-12 15:18:59.000000000 +0000
++++ xmlstarlet-patch/src/trans.c	2023-08-07 13:18:25.651944269 +0000
+@@ -173,7 +173,9 @@
+     xmlDocPtr doc, style;
+     int i, options = 0;
+ 
+-    options = XSLT_PARSE_OPTIONS;
++    options = XSLT_PARSE_OPTIONS | 
++              (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++              (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+      
+     /*
+      * Compile XSLT Sylesheet
+diff -ur xmlstarlet-1.6.1/src/usage.txt xmlstarlet-patch/src/usage.txt
+--- xmlstarlet-1.6.1/src/usage.txt	2013-12-28 21:51:11.000000000 +0000
++++ xmlstarlet-patch/src/usage.txt	2023-08-07 13:18:25.651944269 +0000
+@@ -17,6 +17,8 @@
+   -q or --quiet        - no error output
+   --doc-namespace      - extract namespace bindings from input doc (default)
+   --no-doc-namespace   - don't extract namespace bindings from input doc
++  --huge               - accept text nodes larger than 10 MB
++  --big-lines          - report line numbers larger than 65535
+   --version            - show version
+   --help               - show help
+ Wherever file name mentioned in command help it is assumed
+diff -ur xmlstarlet-1.6.1/src/xml.c xmlstarlet-patch/src/xml.c
+--- xmlstarlet-1.6.1/src/xml.c	2014-08-09 21:50:55.000000000 +0000
++++ xmlstarlet-patch/src/xml.c	2023-08-07 13:18:25.651944269 +0000
+@@ -92,6 +92,8 @@
+ {
+     ops->quiet = 0;
+     ops->doc_namespace = 1;
++    ops->huge = 0;
++    ops->big_lines = 0;
+ }
+ 
+ /**
+@@ -249,6 +251,16 @@
+             ops->doc_namespace = 1;
+             i++;
+         }
++        else if (!strcmp(argv[i], "--huge"))
++        {
++            ops->huge = 1;
++            i++;
++        }
++        else if (!strcmp(argv[i], "--big-lines"))
++        {
++            ops->big_lines = 1;
++            i++;
++        }
+         else if (!strcmp(argv[i], "--version"))
+         {
+             fprintf(stdout, "%s\n"
+diff -ur xmlstarlet-1.6.1/src/xml_C14N.c xmlstarlet-patch/src/xml_C14N.c
+--- xmlstarlet-1.6.1/src/xml_C14N.c	2012-08-12 15:18:59.000000000 +0000
++++ xmlstarlet-patch/src/xml_C14N.c	2023-08-07 13:18:25.655943989 +0000
+@@ -62,8 +62,10 @@
+      */
+ 
+     doc = xmlReadFile(xml_filename, NULL,
+-        XML_PARSE_NOENT | XML_PARSE_DTDLOAD |
+-        XML_PARSE_DTDATTR | (nonet? XML_PARSE_NONET:0));
++        XML_PARSE_NOENT | XML_PARSE_DTDLOAD | 
++        XML_PARSE_DTDATTR | (nonet? XML_PARSE_NONET:0) |
++        (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++        (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0));
+     if (doc == NULL) {
+         fprintf(stderr, "Error: unable to parse file \"%s\"\n", xml_filename);
+         return(EXIT_BAD_FILE);
+diff -ur xmlstarlet-1.6.1/src/xml_edit.c xmlstarlet-patch/src/xml_edit.c
+--- xmlstarlet-1.6.1/src/xml_edit.c	2014-03-03 00:15:08.000000000 +0000
++++ xmlstarlet-patch/src/xml_edit.c	2023-08-07 13:18:25.655943989 +0000
+@@ -550,7 +550,9 @@
+         (g_ops->preserveFormat? 0 : XML_SAVE_FORMAT) |
+         (g_ops->omit_decl? XML_SAVE_NO_DECL : 0);
+     int read_options =
+-        (g_ops->nonet? XML_PARSE_NONET : 0);
++        (g_ops->nonet? XML_PARSE_NONET : 0) |
++        (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++        (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+     xmlSaveCtxtPtr save;
+ 
+     doc = xmlReadFile(filename, NULL, read_options);
+diff -ur xmlstarlet-1.6.1/src/xml_elem.c xmlstarlet-patch/src/xml_elem.c
+--- xmlstarlet-1.6.1/src/xml_elem.c	2012-08-12 15:18:59.000000000 +0000
++++ xmlstarlet-patch/src/xml_elem.c	2023-08-07 13:18:25.655943989 +0000
+@@ -81,8 +81,10 @@
+ {
+     int ret, prev_depth = 0;
+     xmlTextReaderPtr reader;
++    int parserOptions = (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++                        (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+ 
+-    for (reader = xmlReaderForFile(filename, NULL, 0);;)
++    for (reader = xmlReaderForFile(filename, NULL, parserOptions);;)
+     {
+         int depth;
+         const xmlChar *name;
+diff -ur xmlstarlet-1.6.1/src/xml_format.c xmlstarlet-patch/src/xml_format.c
+--- xmlstarlet-1.6.1/src/xml_format.c	2013-03-16 23:27:48.000000000 +0000
++++ xmlstarlet-patch/src/xml_format.c	2023-08-07 13:18:25.655943989 +0000
+@@ -95,7 +95,9 @@
+     ops->omit_decl = 0;
+     ops->recovery = 0;
+     ops->dropdtd = 0;
+-    ops->options = XML_PARSE_NONET;
++    ops->options = XML_PARSE_NONET |
++                   (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++                   (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+ #ifdef LIBXML_HTML_ENABLED
+     ops->html = 0;
+ #endif
+diff -ur xmlstarlet-1.6.1/src/xml_select.c xmlstarlet-patch/src/xml_select.c
+--- xmlstarlet-1.6.1/src/xml_select.c	2014-03-03 00:15:08.000000000 +0000
++++ xmlstarlet-patch/src/xml_select.c	2023-08-07 13:18:25.655943989 +0000
+@@ -701,7 +701,8 @@
+     int start, i, n, status = EXIT_FAILURE;
+     int nCount = 0;
+     xmlDocPtr style_tree;
+-    int xml_options = 0;
++    int xml_options = (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++                      (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+ 
+     if (argc <= 2) selUsage(argv[0], EXIT_BAD_ARGS);
+ 
+diff -ur xmlstarlet-1.6.1/src/xml_validate.c xmlstarlet-patch/src/xml_validate.c
+--- xmlstarlet-1.6.1/src/xml_validate.c	2013-12-30 17:22:28.000000000 +0000
++++ xmlstarlet-patch/src/xml_validate.c	2023-08-07 13:18:25.655943989 +0000
+@@ -289,7 +289,9 @@
+     static valOptions ops;
+     static ErrorInfo errorInfo;
+     int invalidFound = 0;
+-    int options = XML_PARSE_DTDLOAD | XML_PARSE_DTDATTR;
++    int options = XML_PARSE_DTDLOAD | XML_PARSE_DTDATTR | 
++        (globalOptions.huge ? XML_PARSE_HUGE : 0) |
++        (globalOptions.big_lines ? XML_PARSE_BIG_LINES : 0);
+ 
+     if (argc <= 2) valUsage(argc, argv, EXIT_BAD_ARGS);
+     valInitOptions(&ops);
+diff -ur xmlstarlet-1.6.1/src/xmlstar.h xmlstarlet-patch/src/xmlstar.h
+--- xmlstarlet-1.6.1/src/xmlstar.h	2014-03-03 00:15:08.000000000 +0000
++++ xmlstarlet-patch/src/xmlstar.h	2023-08-07 13:18:25.655943989 +0000
+@@ -38,6 +38,8 @@
+ typedef struct _gOptions {
+     int quiet;            /* no error output */
+     int doc_namespace;   /* extract namespace bindings from input doc */
++    int huge;            /* relax any hardcoded limit from the parser */
++    int big_lines;       /* store big lines numbers in text PSVI field */
+ } gOptions;
+ 
+ typedef gOptions *gOptionsPtr;

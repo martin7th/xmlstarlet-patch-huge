@@ -1,0 +1,7 @@
+r
+r/tag0
+r/tag
+r/tag2
+string-length tag0     500,000,000
+string-length tag      250,000,000
+string-length tag2   1,250,000,000

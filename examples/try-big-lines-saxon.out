@@ -1,0 +1,39 @@
+line-num  node-type   name           normalized-text-value
+-1        #root                      text string &<>'" (in CDATA)
+2         #comment                   edited
+1234571   element     doc            text string &<>'" (in CDATA)
+1234571   #text                      
+1234571   element     one            text
+1234571   #text                      text
+1234572   #text                      
+1234572   element     two            string
+1234572   #text                      str
+1234572   element     r:i            i
+1234572   #text                      i
+1234572   #text                      ng
+1234573   #text                      
+1234574   element     three          
+1234574   #text                      
+1234575   #pi         rrr            "'><&
+1234575   #text                      
+1234576   element     four           
+1234576   #text                      
+1234576   #text                      &<>'" (in CDATA)
+1234577   #text                      
+1234578   #comment                   eodoc
+1234578   #text                      
+1234571   #pi         post           sed -e 's/xC9/0311/' -- file
+1234571   attribute   att            1
+1234572   attribute   val            st
+1234576   attribute   att            4
+1234576   attribute   val            v
+1234576   attribute   flag           true
+1234571   namespace   xml            http://www.w3.org/XML/1998/namespace
+1234571   namespace   xml            http://www.w3.org/XML/1998/namespace
+1234572   namespace   xml            http://www.w3.org/XML/1998/namespace
+1234572   namespace   xml            http://www.w3.org/XML/1998/namespace
+1234572   namespace   r              urn:nsr:local
+1234574   namespace   xml            http://www.w3.org/XML/1998/namespace
+1234574   namespace                  urn:g3r:local
+1234576   namespace   xml            http://www.w3.org/XML/1998/namespace
+0         element     xsl:otherwise  #aliens-at-work

@@ -1,0 +1,37 @@
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"/>
+    <title>xmlstarlet-huge-patch README</title>
+    <style type="text/css">body { color: #111111; background-color: #fffff8; margin: 4em 4em; font-family: palatino, serif; font-size: large; } li { margin-top: 2px; } p code, li code { background: #eee; padding: 2px 4px; } pre { background: #eee; padding: 4px 8px; }</style>
+  </head>
+  <body>
+    <h1>Patch xmlstarlet 1.6.1 to use &#x2018;huge&#x2019; nodes and &#x2018;big lines&#x2019;</h1>
+    <p>This patch adds 2 global options to <a href="https://xmlstar.sourceforge.net/" title="'xmlstarlet' on SourceForge"><code>xmlstarlet</code></a>, available in the subcommands <code>elements</code>, <code>select</code>, <code>edit</code>, <code>format</code>, <code>canonic</code>, <code>validate</code>, and <code>transform</code>:</p>
+    <ul>
+      <li><code>--huge</code><br/>
+Load XML files with <a href="https://gitlab.gnome.org/GNOME/libxml2/-/wikis/home" title="'libxml2 Wiki Home' on gitlab.gnome.org"><code>libxml2</code></a>&#x2019;s <code>XML_PARSE_HUGE</code> parser option. Without this option the parser will fail with a <q>xmlSAX2Characters: huge text node: out of memory</q> error when loading a text node larger than 10 MB. (<code>xmlstarlet</code>&#x2019;s <code>pyx</code> subcommand uses the SAX API which has no such limitation.) In <code>libxml2</code> the <code>XML_PARSE_HUGE</code> option is disabled by default to prevent denial-of-service attacks.</li>
+      <li><code>--big-lines</code><br/>
+Load XML files with <code>libxml2</code>&#x2019;s <code>XML_PARSE_BIG_LINES</code> parser option. This allows line numbers larger than 65535 to be reported correctly in error messages and (for <code>select</code> and <code>transform</code>) in output from the <code>saxon:line-number</code> extension. There is currently an open <a href="https://gitlab.gnome.org/GNOME/libxml2/-/issues/361" title="Issue 'Incorrect line number reported if higher than 65535 in some cases' on gitlab.gnome.org">issue</a> on this option suggesting it&#x2019;s limited to text nodes, however, it appears to have been resolved by now as line numbers are output as expected for all node types except the root node (<code>/</code>) which is fixed at line <code>-1</code>.</li>
+    </ul>
+    <p>The patch requires <code>xmlstarlet</code> to be rebuilt from source code:</p>
+    <ol>
+      <li>Install the packages <a href="https://packages.debian.org/bookworm/libxml2-dev" title="'libxml2-dev' on packages.debian.org"><code>libxml2-dev</code></a> (most recent version for the updated <code>XML_PARSE_BIG_LINES</code>) and <a href="https://packages.debian.org/bookworm/libxslt1-dev" title="'libxslt1-dev' on packages.debian.org"><code>libxslt1-dev</code></a> (e.g.&#xA0;<code>sudo apt-get install libxml2-dev libxslt1-dev</code>).</li>
+      <li><code>cd</code> to an empty directory, download (<a href="https://sourceforge.net/projects/xmlstar/files" title="'xmlstarlet files' on SourceForge">sf.net</a> or <a href="https://fossies.org/linux/www/xmlstarlet-1.6.1.tar.gz" title="xmlstarlet-1.6.1.tar.gz on Fossies">fossies.org</a>) and unpack (e.g.&#xA0;<code>tar xaf xmlstarlet-1.6.1.tar.gz</code>) the <code>xmlstarlet</code> source code.</li>
+      <li>Download <code>xmlstarlet-huge.diff</code> and apply the patch by running <code>patch -u -p1 -d xmlstarlet-1.6.1 &lt; xmlstarlet-huge.diff</code> to modify source files.</li>
+      <li>Follow the instructions in <code>xmlstarlet-1.6.1/INSTALL</code> to build, test, and install <code>xmlstarlet</code>.
+On a recent Debian system it was done with the following commands &#x2013; resulting in 3 compiler warnings (<code>maybe-uninitialized</code>, <code>incompatible-pointer-types</code>, <code>unused-result)</code> and 2 tests (<code>bigxml-dtd</code>, <code>ed-namespace</code>) failing as expected. Note that this builds a dynamically linked executable but <code>./configure --enable-static-libs ...</code> is there if you can brave the <code>.a</code>s.
+<pre class="lang-shell"><code>$ cd xmlstarlet-1.6.1
+$ ./configure CFLAGS="-O3 $(xml2-config --cflags)" LIBS="$(xml2-config --libs)"
+&#x2026;
+$ make
+&#x2026;
+$ make check
+&#x2026;
+$ sudo make install-strip
+&#x2026;
+$ sudo mv /usr/local/bin/xml /usr/local/bin/xmlstarlet</code></pre></li>
+    </ol>
+    <p>Global options are listed in the general usage reminder (<code>xmlstarlet --help</code>).</p>
+  </body>
+</html>
